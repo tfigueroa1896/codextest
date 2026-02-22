@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import CameraContainer from "./components/CameraContainer";
 import StickerBook from "./components/StickerBook";
 

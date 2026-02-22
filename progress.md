@@ -49,3 +49,14 @@ Updated TODOs:
 - Add a real `public/audio/success.mp3`.
 - Replace placeholder image/audio URLs in `seed.sql` with curated kid-safe assets.
 - Consider lazy code-splitting TensorFlow imports to reduce initial bundle size.
+
+2026-02-22 (blank-screen fix)
+- Investigated runtime blank page and confirmed console error: `ReferenceError: React is not defined` from `src/App.jsx`.
+- Added Vite React plugin setup:
+  - `vite.config.js`
+  - `@vitejs/plugin-react` in `devDependencies`
+- Added explicit `import React` in JSX component files for compatibility:
+  - `src/App.jsx`
+  - `src/components/CameraContainer.jsx`
+  - `src/components/StickerBook.jsx`
+- Rebuilt successfully with `npm run build` after installing dependencies.
