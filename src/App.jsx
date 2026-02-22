@@ -50,8 +50,8 @@ export default function App() {
   }, [apiBaseUrl, userId]);
 
   return (
-    <main className="app-shell min-h-screen px-3 py-4 md:px-6 md:py-8">
-      <div className="mx-auto grid max-w-6xl grid-cols-1 gap-5 lg:grid-cols-[1.3fr_1fr]">
+    <main className="app-shell min-h-screen px-2 py-3 md:px-5 md:py-6">
+      <div className="mx-auto grid max-w-6xl grid-cols-1 gap-3 lg:grid-cols-[1.3fr_1fr] lg:gap-4">
         <CameraContainer
           userId={userId}
           apiBaseUrl={apiBaseUrl}

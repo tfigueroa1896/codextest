@@ -7,14 +7,14 @@ const CENTER_SAMPLE_SIZE = 50;
 const OBJECT_CONFIDENCE_THRESHOLD = 0.6;
 
 const TARGET_COLORS = {
-  red: { hue: [345, 15], minSat: 35, minLight: 20, maxLight: 85 },
-  orange: { hue: [16, 40], minSat: 35, minLight: 20, maxLight: 88 },
-  yellow: { hue: [41, 70], minSat: 35, minLight: 25, maxLight: 92 },
-  green: { hue: [71, 165], minSat: 25, minLight: 20, maxLight: 90 },
-  blue: { hue: [166, 255], minSat: 25, minLight: 18, maxLight: 88 },
-  purple: { hue: [256, 320], minSat: 25, minLight: 15, maxLight: 85 },
-  pink: { hue: [321, 344], minSat: 20, minLight: 30, maxLight: 95 },
-  brown: { hue: [16, 35], minSat: 25, minLight: 10, maxLight: 45 },
+  red: { hue: [345, 15], minSat: 14, minLight: 20, maxLight: 85 },
+  orange: { hue: [16, 40], minSat: 12, minLight: 20, maxLight: 88 },
+  yellow: { hue: [41, 70], minSat: 10, minLight: 22, maxLight: 95 },
+  green: { hue: [71, 165], minSat: 12, minLight: 20, maxLight: 90 },
+  blue: { hue: [166, 255], minSat: 10, minLight: 18, maxLight: 90 },
+  purple: { hue: [256, 320], minSat: 12, minLight: 15, maxLight: 85 },
+  pink: { hue: [321, 344], minSat: 10, minLight: 30, maxLight: 95 },
+  brown: { hue: [16, 35], minSat: 10, minLight: 10, maxLight: 45 },
   black: { hue: [0, 359], minSat: 0, minLight: 0, maxLight: 15 },
   white: { hue: [0, 359], minSat: 0, minLight: 82, maxLight: 100 },
   gray: { hue: [0, 359], minSat: 0, minLight: 15, maxLight: 82 },
@@ -122,12 +122,16 @@ export default function CameraContainer({
   const frameRequestRef = useRef(null);
   const checkingRef = useRef(false);
   const modelLoadPromiseRef = useRef(null);
+  const toastTimeoutRef = useRef(null);
   const [cameraEnabled, setCameraEnabled] = useState(false);
   const [challenge, setChallenge] = useState(null);
-  const [status, setStatus] = useState("Tap Start Camera to begin");
+  const [status, setStatus] = useState("Tap Start Game to begin");
   const [avgRgb, setAvgRgb] = useState(null);
   const [isLoadingModel, setIsLoadingModel] = useState(false);
   const [isSubmittingFound, setIsSubmittingFound] = useState(false);
+  const [isInfoOpen, setIsInfoOpen] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
 
   const videoConstraints = useMemo(
     () => ({
@@ -146,19 +150,33 @@ export default function CameraContainer({
     checkingRef.current = false;
   }, []);
 
-  const fetchChallenge = useCallback(async () => {
+  const showToast = useCallback((message, duration = 2200) => {
+    setToastMessage(message);
+    if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+    toastTimeoutRef.current = setTimeout(() => {
+      setToastMessage("");
+    }, duration);
+  }, []);
+
+  const fetchChallenge = useCallback(async ({ forActiveGame = false } = {}) => {
     const userQuery = userId ? `?user_id=${encodeURIComponent(userId)}` : "";
     const response = await fetch(`${apiBaseUrl}/api/challenge${userQuery}`);
     if (!response.ok) {
       throw new Error("Could not fetch challenge");
     }
     const data = await response.json();
+    setAvgRgb(null);
     setChallenge(data.challenge);
-    setStatus(
+    const promptText =
       data.challenge.type === "color"
         ? `Find something ${data.challenge.target_value}!`
-        : `Find a ${data.challenge.target_value}!`
-    );
+        : `Find a ${data.challenge.target_value}!`;
+
+    if (forActiveGame) {
+      setStatus(promptText);
+    } else {
+      setStatus(`Ready: ${promptText} Tap Start Game.`);
+    }
 
     if (data.challenge.audio_prompt_url) {
       const audio = new Audio(data.challenge.audio_prompt_url);
@@ -191,7 +209,14 @@ export default function CameraContainer({
     if (!challenge || isSubmittingFound) return;
     setIsSubmittingFound(true);
     stopDetectionLoop();
-    setStatus("Great Job! Sticker unlocked!");
+    setStatus(
+      `Success! You found ${challenge.target_value}. Tap Start Game to play again.`
+    );
+    showToast("Success! Game finished.");
+    setSuccessMessage(
+      `Great job! You found ${challenge.target_value}. Sticker unlocked.`
+    );
+    setCameraEnabled(false);
 
     try {
       if (userId) {
@@ -210,13 +235,10 @@ export default function CameraContainer({
       }
       const successAudio = new Audio("/audio/success.mp3");
       successAudio.play().catch(() => {});
-      setTimeout(() => {
-        fetchChallenge().catch(() => setStatus("Tap retry to get a new challenge."));
-      }, 1200);
     } finally {
-      setTimeout(() => setIsSubmittingFound(false), 800);
+      setIsSubmittingFound(false);
     }
-  }, [apiBaseUrl, challenge, fetchChallenge, isSubmittingFound, onStickerUnlocked, stopDetectionLoop, userId]);
+  }, [apiBaseUrl, challenge, isSubmittingFound, onStickerUnlocked, showToast, stopDetectionLoop, userId]);
 
   const runObjectCheck = useCallback(async () => {
     const webcam = webcamRef.current;
@@ -275,7 +297,10 @@ export default function CameraContainer({
 
   useEffect(() => {
     sampleCanvasRef.current = document.createElement("canvas");
-    return () => stopDetectionLoop();
+    return () => {
+      stopDetectionLoop();
+      if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+    };
   }, [stopDetectionLoop]);
 
   useEffect(() => {
@@ -287,11 +312,11 @@ export default function CameraContainer({
     let disposed = false;
     const initialize = async () => {
       try {
-        const nextChallenge = await fetchChallenge();
+        const nextChallenge = await fetchChallenge({ forActiveGame: true });
         if (nextChallenge?.type === "object") {
           await ensureObjectModel();
         }
-        if (!disposed) startDetectionLoop();
+        if (disposed) return;
       } catch {
         setStatus("Could not initialize camera or model.");
       }
@@ -303,7 +328,7 @@ export default function CameraContainer({
       disposed = true;
       stopDetectionLoop();
     };
-  }, [cameraEnabled, ensureObjectModel, fetchChallenge, startDetectionLoop, stopDetectionLoop]);
+  }, [cameraEnabled, ensureObjectModel, fetchChallenge, stopDetectionLoop]);
 
   useEffect(() => {
     if (cameraEnabled && challenge) {
@@ -313,47 +338,94 @@ export default function CameraContainer({
   }, [cameraEnabled, challenge, startDetectionLoop, stopDetectionLoop]);
 
   return (
-    <section className="w-full rounded-3xl border-4 border-black bg-yellow-200 p-4 shadow-[0_10px_0_#111]">
-      <div className="mb-4 text-center">
-        <h2 className="text-3xl font-black text-black">The Magic Lens</h2>
-        <p className="mt-2 text-xl font-bold text-black">{status}</p>
+    <section className="relative w-full rounded-3xl border-4 border-black bg-yellow-200 p-3 shadow-[0_8px_0_#111] md:p-4 md:shadow-[0_10px_0_#111]">
+      {toastMessage && (
+        <div className="mb-2 rounded-2xl border-4 border-black bg-white px-3 py-2 text-center text-base font-black text-black md:text-lg">
+          {toastMessage}
+        </div>
+      )}
+
+      <div className="mb-3">
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="text-3xl font-black text-black md:text-4xl">The Magic Lens</h2>
+          <button
+            type="button"
+            onClick={() => setIsInfoOpen(true)}
+            className="h-12 min-w-12 rounded-xl border-4 border-black bg-white px-3 text-lg font-black text-black"
+            aria-label="Game instructions"
+          >
+            Info
+          </button>
+        </div>
+        <p className="mt-2 text-center text-xl font-bold text-black md:text-2xl">{status}</p>
       </div>
 
-      <div className="relative overflow-hidden rounded-2xl border-4 border-black bg-black">
+      <div className="relative h-[35vh] min-h-[220px] max-h-[340px] overflow-hidden rounded-2xl border-4 border-black bg-black md:h-[46vh] md:max-h-[440px]">
         <Webcam
           ref={webcamRef}
           audio={false}
           mirrored={false}
           screenshotFormat="image/jpeg"
           videoConstraints={videoConstraints}
-          className="h-auto w-full"
+          className="h-full w-full object-cover"
         />
         <div className="pointer-events-none absolute left-1/2 top-1/2 h-[50px] w-[50px] -translate-x-1/2 -translate-y-1/2 border-4 border-white shadow-[0_0_0_4px_#000]" />
+        {!cameraEnabled && (
+          <div className="pointer-events-none absolute inset-0 flex items-start justify-center bg-black/20 px-2 pt-2">
+            <div className="rounded-xl border-4 border-black bg-white/95 px-3 py-2 text-center text-sm font-black text-black md:text-base">
+              Game paused. Tap Start Game to detect this challenge.
+            </div>
+          </div>
+        )}
       </div>
 
-      <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
+      <div className="mt-3 grid grid-cols-2 gap-2 md:mt-4 md:gap-3">
         <button
-          type="button"
-          onClick={() => setCameraEnabled((v) => !v)}
-          className="min-h-[100px] rounded-2xl border-4 border-black bg-green-400 px-6 py-4 text-2xl font-black text-black"
-        >
-          {cameraEnabled ? "Stop Camera" : "Start Camera"}
-        </button>
-        <button
+          id="start-game-btn"
           type="button"
           onClick={() => {
-            fetchChallenge().catch(() => setStatus("Could not load challenge."));
+            if (!cameraEnabled) {
+              setChallenge(null);
+              setAvgRgb(null);
+              setSuccessMessage("");
+              setStatus("Starting game. Getting one challenge...");
+              showToast("Game started. Find this one target.");
+              setCameraEnabled(true);
+              return;
+            }
+            stopDetectionLoop();
+            setCameraEnabled(false);
+            setStatus("Game paused. Tap Start Game to continue.");
+            showToast("Game paused.");
           }}
-          className="min-h-[100px] rounded-2xl border-4 border-black bg-cyan-300 px-6 py-4 text-2xl font-black text-black"
+          className="min-h-[78px] rounded-2xl border-4 border-black bg-green-400 px-4 py-3 text-xl font-black text-black md:min-h-[96px] md:text-2xl"
+        >
+          {cameraEnabled ? "Stop Game" : "Start Game"}
+        </button>
+        <button
+          id="new-challenge-btn"
+          type="button"
+          onClick={() => {
+            if (cameraEnabled) {
+              showToast("Finish this game first, or stop camera.");
+              return;
+            }
+            fetchChallenge({ forActiveGame: false }).catch(() =>
+              setStatus("Could not load challenge.")
+            );
+          }}
+          disabled={cameraEnabled || isSubmittingFound}
+          className="min-h-[78px] rounded-2xl border-4 border-black bg-cyan-300 px-4 py-3 text-xl font-black text-black disabled:cursor-not-allowed disabled:opacity-60 md:min-h-[96px] md:text-2xl"
         >
           New Challenge
         </button>
       </div>
 
-      <div className="mt-4 rounded-2xl border-4 border-black bg-white p-3 text-lg font-bold text-black">
+      <div className="mt-3 rounded-2xl border-4 border-black bg-white p-3 text-base font-bold text-black md:mt-4 md:text-lg">
+        <p>Detection: {cameraEnabled ? "RUNNING" : "PAUSED"}</p>
         <p>Mode: {challenge?.type ? challenge.type.toUpperCase() : "WAITING"}</p>
         <p>Target: {challenge?.target_value || "-"}</p>
-        {challenge?.type === "color" && avgRgb && (
+        {challenge?.type === "color" && cameraEnabled && avgRgb && (
           <p>
             Center Color: rgb({Math.round(avgRgb.r)}, {Math.round(avgRgb.g)},{" "}
             {Math.round(avgRgb.b)})
@@ -361,6 +433,46 @@ export default function CameraContainer({
         )}
         {isLoadingModel && <p>Loading detection model...</p>}
       </div>
+
+      {successMessage && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-3">
+          <div className="w-full max-w-md rounded-3xl border-4 border-black bg-white p-4 shadow-[0_10px_0_#111]">
+            <h3 className="text-2xl font-black text-black">Round Complete</h3>
+            <p className="mt-3 text-lg font-bold text-black">{successMessage}</p>
+            <button
+              type="button"
+              onClick={() => setSuccessMessage("")}
+              className="mt-4 min-h-[72px] w-full rounded-2xl border-4 border-black bg-green-300 text-xl font-black text-black"
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      )}
+
+      {isInfoOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-3">
+          <div className="w-full max-w-md rounded-3xl border-4 border-black bg-white p-4 shadow-[0_10px_0_#111]">
+            <h3 className="text-2xl font-black text-black">How To Play</h3>
+            <ol className="mt-3 list-decimal space-y-1 pl-5 text-lg font-bold text-black">
+              <li>Tap Start Game to begin detection.</li>
+              <li>Read the target at the top.</li>
+              <li>Aim the center square at matching object or color.</li>
+              <li>When found, a success popup appears and the round ends.</li>
+            </ol>
+            <p className="mt-3 text-base font-bold text-black">
+              Tip: Use good lighting to improve detection.
+            </p>
+            <button
+              type="button"
+              onClick={() => setIsInfoOpen(false)}
+              className="mt-4 min-h-[72px] w-full rounded-2xl border-4 border-black bg-yellow-200 text-xl font-black text-black"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

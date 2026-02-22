@@ -60,3 +60,59 @@ Updated TODOs:
   - `src/components/CameraContainer.jsx`
   - `src/components/StickerBook.jsx`
 - Rebuilt successfully with `npm run build` after installing dependencies.
+
+2026-02-22 (UX/mobile compact update)
+- Added in-game instructions modal:
+  - `Info` button in `CameraContainer`
+  - centered modal with simple play steps and close button
+- Added start/end notifications:
+  - toast on game start
+  - toast on game pause (camera stop)
+  - toast on challenge completion (sticker unlocked)
+- Made layout more compact for mobile:
+  - reduced app and card paddings/gaps
+  - constrained camera preview height on phones (`h-[35vh]`, min/max bounds)
+  - tightened Sticker Book spacing and card sizes on small screens
+- Validation:
+  - `npm run build` succeeded with production API URL
+  - Playwright smoke screenshot generated at `output/web-game/shot-0.png`
+- Deployment:
+  - `npx wrangler pages deploy dist --project-name magic-lens --commit-dirty=true`
+  - production deployment URL: `https://e818e4d4.magic-lens.pages.dev`
+
+2026-02-22 (single-round stability fix)
+- Resolved rapid challenge switching/glitching by changing game flow to one challenge per start:
+  - Removed auto-fetch of a new challenge after success.
+  - On success: show confirmation, stop camera, end round, and require manual Start for next round.
+- Improved challenge clarity:
+  - Success status now explicitly says the target was found and instructs user to press Start again.
+  - New challenge button is disabled while a game is running.
+  - Added guard toast if user attempts New Challenge during active game.
+- Added test IDs for deterministic automation:
+  - `#start-game-btn`
+  - `#new-challenge-btn`
+- Validation:
+  - `npm run build` succeeded.
+  - Playwright smoke run executed and screenshots reviewed (`output/web-game/shot-0.png`, `output/web-game/shot-1.png`).
+- Deployment:
+  - `npx wrangler pages deploy dist --project-name magic-lens --commit-dirty=true`
+  - production deployment URL: `https://87ab2c62.magic-lens.pages.dev`
+
+2026-02-22 (success detection clarity + color tolerance update)
+- User-reported issue: no success confirmation while pointing to target; screenshots showed paused state confusion and low-saturation color misses.
+- Fixes in `src/components/CameraContainer.jsx`:
+  - Clearer game state:
+    - status default changed to `Tap Start Game to begin`
+    - persistent paused overlay inside the camera viewport
+    - center color readout shown only while detection is running
+  - Improved challenge loading state:
+    - clears stale `avgRgb` whenever a new challenge is fetched
+  - Relaxed color thresholds for kid-friendly/real-world lighting:
+    - reduced `minSat` across non-neutral target colors
+    - widened yellow/blue effective acceptance in low saturation scenes
+- Validation:
+  - `npm run build` succeeded.
+  - Playwright smoke screenshot verified paused overlay placement and state labels (`output/web-game/shot-0.png`).
+- Deployment:
+  - `npx wrangler pages deploy dist --project-name magic-lens --commit-dirty=true`
+  - production deployment URL: `https://e735d232.magic-lens.pages.dev`
