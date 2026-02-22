@@ -1,0 +1,59 @@
+@import url("https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Fredoka:wght@500;600;700&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --ink: #111111;
+  --sky: #5ee7ff;
+  --lemon: #f9f871;
+  --mint: #81f5bf;
+  --rose: #ff9fcf;
+  --cream: #fff7de;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  color: var(--ink);
+  font-family: "Baloo 2", "Segoe UI", sans-serif;
+  background:
+    radial-gradient(circle at 15% 20%, rgba(255, 159, 207, 0.42) 0, rgba(255, 159, 207, 0) 32%),
+    radial-gradient(circle at 85% 25%, rgba(94, 231, 255, 0.42) 0, rgba(94, 231, 255, 0) 35%),
+    radial-gradient(circle at 55% 80%, rgba(129, 245, 191, 0.38) 0, rgba(129, 245, 191, 0) 35%),
+    linear-gradient(165deg, #fffaf0 0%, var(--cream) 60%, #fef3a2 100%);
+}
+
+h1,
+h2,
+h3,
+button {
+  font-family: "Fredoka", "Baloo 2", sans-serif;
+}
+
+.app-shell::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image: linear-gradient(
+      90deg,
+      rgba(17, 17, 17, 0.03) 0,
+      rgba(17, 17, 17, 0.03) 1px,
+      transparent 1px,
+      transparent 24px
+    ),
+    linear-gradient(
+      0deg,
+      rgba(17, 17, 17, 0.03) 0,
+      rgba(17, 17, 17, 0.03) 1px,
+      transparent 1px,
+      transparent 24px
+    );
+  z-index: -1;
+}

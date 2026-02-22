@@ -1,0 +1,10 @@
+name = "magic-lens-worker"
+main = "worker/index.js"
+compatibility_date = "2026-02-22"
+pages_build_output_dir = "dist"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "magic-lens-d1"
+database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"
+migrations_dir = "."
