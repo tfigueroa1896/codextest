@@ -5,5 +5,5 @@ compatibility_date = "2026-02-22"
 [[d1_databases]]
 binding = "DB"
 database_name = "magic-lens-d1"
-database_id = "10f90ac1-4df6-41d8-bf8d-6ed575a55e06"
+database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"
 migrations_dir = "."

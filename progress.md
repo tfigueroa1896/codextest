@@ -116,3 +116,13 @@ Updated TODOs:
 - Deployment:
   - `npx wrangler pages deploy dist --project-name magic-lens --commit-dirty=true`
   - production deployment URL: `https://e735d232.magic-lens.pages.dev`
+
+2026-02-22 (config hygiene)
+- Audited tracked files for sensitive strings.
+- No API keys/tokens/passwords found in tracked source files.
+- Removed environment-specific D1 database ID from tracked `wrangler.toml` (replaced with placeholder).
+- Updated `.gitignore` to exclude local deployment/config artifacts:
+  - `.dev.vars`
+  - `wrangler.local.toml`
+  - `output/`
+- Updated `README.md` to use an untracked `wrangler.local.toml` via `--config`.

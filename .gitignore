@@ -3,4 +3,7 @@ dist/
 .wrangler/
 .env
 .env.*
+.dev.vars
+wrangler.local.toml
+output/
 npm-debug.log*

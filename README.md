@@ -37,7 +37,14 @@ npm install
 npx wrangler d1 create magic-lens-d1
 ```
 
-3. Put the returned `database_id` into `wrangler.toml`:
+3. Create a local (ignored) Wrangler config and put the returned `database_id` there:
+
+```bash
+# PowerShell
+Copy-Item wrangler.toml wrangler.local.toml
+```
+
+Edit `wrangler.local.toml`:
 
 ```toml
 [[d1_databases]]
@@ -49,14 +56,14 @@ database_id = "PASTE_REAL_ID_HERE"
 4. Apply schema and seed:
 
 ```bash
-npx wrangler d1 execute magic-lens-d1 --file=./schema.sql --local
-npx wrangler d1 execute magic-lens-d1 --file=./seed.sql --local
+npx wrangler d1 execute magic-lens-d1 --file=./schema.sql --local --config wrangler.local.toml
+npx wrangler d1 execute magic-lens-d1 --file=./seed.sql --local --config wrangler.local.toml
 ```
 
 5. Start the Worker API:
 
 ```bash
-npx wrangler dev
+npx wrangler dev --config wrangler.local.toml
 ```
 
 6. In a second terminal, set frontend API base and run Vite:
@@ -80,7 +87,7 @@ npm run build
 2. Deploy Worker API:
 
 ```bash
-npx wrangler deploy
+npx wrangler deploy --config wrangler.local.toml
 ```
 
 3. Deploy static frontend to Pages:
